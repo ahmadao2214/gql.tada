@@ -11,6 +11,7 @@ import type { TsConfigJson } from 'type-fest';
 import type { GraphQLSPConfig } from './lsp';
 import { hasGraphQLSP } from './lsp';
 import { ensureTadaIntrospection } from './tada';
+import { check } from './check';
 
 const prog = sade('gql.tada');
 
@@ -18,6 +19,32 @@ prog.version(process.env.npm_package_version || '0.0.0');
 
 async function main() {
   prog
+    .command('check')
+    .action(async () => {
+      const cwd = process.cwd();
+      const tsconfigpath = path.resolve(cwd, 'tsconfig.json');
+      const hasTsConfig = existsSync(tsconfigpath);
+      if (!hasTsConfig) {
+        console.error(`Could not find a tsconfig in the working-directory.`);
+        return;
+      }
+
+      const tsconfigContents = await fs.readFile(tsconfigpath, 'utf-8');
+      let tsConfig: TsConfigJson;
+      try {
+        tsConfig = parse(tsconfigContents) as TsConfigJson;
+      } catch (err) {
+        console.error(err);
+        return;
+      }
+
+      const currentDirectoryFiles = (await fs
+      .readdir(resolve(cwd, 'src')))
+      .filter(fileName => fileName.length >= 3 && fileName.substr(fileName.length - 3, 3) === ".ts");
+    
+      // Start the watcher
+      check(currentDirectoryFiles, tsConfig.compilerOptions as any);
+    })
     .command('generate-schema <target>')
     .describe(
       'Generate a GraphQL schema from a URL or introspection file, this will be generated from the parameters to this command.'
@@ -174,4 +201,4 @@ async function main() {
   prog.parse(process.argv);
 }
 
-export default main;
+main();
