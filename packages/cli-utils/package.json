@@ -39,6 +39,9 @@
     "clean": "rimraf dist node_modules/.cache",
     "prepublishOnly": "run-s clean build"
   },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "comment-json": "^4.2.3",

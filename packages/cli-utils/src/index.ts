@@ -7,6 +7,7 @@ import { parse } from 'comment-json';
 import type { IntrospectionQuery } from 'graphql';
 import { buildClientSchema, getIntrospectionQuery, printSchema } from 'graphql';
 import type { TsConfigJson } from 'type-fest';
+import * as ts from 'typescript';
 
 import type { GraphQLSPConfig } from './lsp';
 import { hasGraphQLSP } from './lsp';
@@ -22,28 +23,23 @@ async function main() {
     .command('check')
     .action(async () => {
       const cwd = process.cwd();
-      const tsconfigpath = path.resolve(cwd, 'tsconfig.json');
-      const hasTsConfig = existsSync(tsconfigpath);
-      if (!hasTsConfig) {
+
+      const fileLocation = ts.findConfigFile(cwd, ts.sys.fileExists, 'tsconfig.json');
+      if (!fileLocation) {
         console.error(`Could not find a tsconfig in the working-directory.`);
         return;
       }
 
-      const tsconfigContents = await fs.readFile(tsconfigpath, 'utf-8');
-      let tsConfig: TsConfigJson;
-      try {
-        tsConfig = parse(tsconfigContents) as TsConfigJson;
-      } catch (err) {
-        console.error(err);
-        return;
-      }
+      const currentDirectoryFiles = (await fs.readdir(resolve(cwd, 'src')))
+        .filter((fileName) => fileName.endsWith('.ts') || fileName.endsWith('.tsx'))
+        .map((fileName) => resolve(cwd, 'src', fileName));
+      const more = (await fs.readdir(resolve(cwd, 'src', 'components')))
+        .filter((fileName) => fileName.endsWith('.ts') || fileName.endsWith('.tsx'))
+        .map((fileName) => resolve(cwd, 'src', 'components', fileName));
+      const file = ts.readConfigFile(fileLocation, ts.sys.readFile);
 
-      const currentDirectoryFiles = (await fs
-      .readdir(resolve(cwd, 'src')))
-      .filter(fileName => fileName.length >= 3 && fileName.substr(fileName.length - 3, 3) === ".ts");
-    
       // Start the watcher
-      check(currentDirectoryFiles, tsConfig.compilerOptions as any);
+      check([...currentDirectoryFiles, ...more], file.config);
     })
     .command('generate-schema <target>')
     .describe(
