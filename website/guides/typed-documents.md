@@ -69,7 +69,7 @@ subject to these types _implicitly_.
 
 If we’re using TypeScript on the client-side and have a set of
 GraphQL documents that we may execute against our schema, we
-can only know the documents’ result types by looking comparing
+can only know the documents’ result types by comparing
 them to the schema.
 
 In GraphQL, this is often done ahead of time in with “Type Generation”.
